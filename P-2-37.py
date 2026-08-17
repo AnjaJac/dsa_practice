@@ -80,13 +80,13 @@ class River:
 
         for i in order:
             animal = self.cells[i]
-            if animal is None or id(animal) is already_moved:
+            if animal is None or id(animal) in already_moved:
                 continue
 
             already_moved.add(id(animal))
 
             direction = random.choice([-1, 0, 1])
-            j = i * direction
+            j = i + direction
             if direction == 0 or j < 0 or j >= self.size:
                 continue
 
