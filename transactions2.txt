@@ -1,0 +1,3 @@
+buy 50 shares at $10 each
+buy 50 shares at $10 each
+sell 100 shares at $10 each

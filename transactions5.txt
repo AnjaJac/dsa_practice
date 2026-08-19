@@ -1,0 +1,7 @@
+buy 100 shares at $10 each
+sell 30 shares at $15 each
+buy 50 shares at $20 each
+sell 60 shares at $12 each
+buy 200 shares at $5 each
+sell 100 shares at $25 each
+sell 60 shares at $6 each

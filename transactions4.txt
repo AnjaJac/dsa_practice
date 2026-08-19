@@ -1,0 +1,4 @@
+buy 75 shares at $12 each
+sell 75 shares at $15 each
+buy 40 shares at $8 each
+sell 40 shares at $8 each
