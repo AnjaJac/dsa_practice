@@ -33,9 +33,15 @@ Rules for one time step:
     - Fish always has a lower strength then the Bear.
 """
 import random
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
 
 class Animal:
     """ Base class for all creatures living in the river"""
+    # Default strength range: subclass override this to guarantee
+    #species-level guardrails
     STRENGTH_RANGE = (1.0, 10.0)
 
     def __init__(self, gender=None, strength=None):
@@ -50,12 +56,14 @@ class Animal:
         return f"{self.__class__.__name__[0]}({g},{self.strength: .1f})"
 
 class Bear(Animal):
+    #Bear is always stronger than fish
     STRENGTH_RANGE = (6.0, 10.0)
 
 class Fish(Animal):
+    # Fish is always eaten by the bear
     STRENGTH_RANGE = (1.0, 5.0)
 
-
+# RIver ecosystem
 class River:
     def __init__(self, size, num_bears, num_fish):
         self.size = size
@@ -81,7 +89,8 @@ class River:
         for i in order:
             animal = self.cells[i]
             if animal is None or id(animal) in already_moved:
-                continue
+                continue        # cell emptied earlier, or animal
+                                # already handeled this round
 
             already_moved.add(id(animal))
 
@@ -93,20 +102,26 @@ class River:
             target = self.cells[j]
 
             if target is None:
+                # Move into an empty cell
                 self.cells[j] = animal
                 self.cells[i] = None
             elif type(target) is type(animal):
+                # Same species collision
                 already_moved.add(id(target))
                 if target.gender != animal.gender:
+                    # Different genders -> reproduce
                     empties = self._empty_indices()
                     if empties:
                         k = random.choice(empties)
                         self.cells[k] = type(animal)()
                 else:
+                    # Same gender -> stronger survives
                     if animal.strength > target.strength:
+                        # Aggressor (attacker) wins
                         self.cells[j] = animal
                         self.cells[i] = None
                     elif target.strength > animal.strength:
+                        #Defender wins
                         self.cells[i] = None
             else:
                 if isinstance(animal, Bear) and isinstance(target, Fish):
@@ -129,7 +144,49 @@ class River:
                 symbols.append(repr(c))
         return " ".join(symbols)
 
-def run_simulation(river_size=30, num_bears=6, num_fish=10, steps=15):
+# Visualization: river state to png
+def save_river_image(river, step, filename="river_snapshot.png"):
+    """Render the real River object's current cell contents as a colored
+    grid: brown for Bear, blue for Fish, white for empty. This reads
+    river.cells directly, so the picture always matches whatever the
+    simulation actually produced, not a separate reimplementation."""
+    n = river.size
+    fig, ax = plt.subplots(figsize=(12, 2.2))
+    for i, c in enumerate(river.cells):
+        if c is None:
+            color, label = "#f0f0f0", ""
+        elif isinstance(c, Bear):
+            color, label = "#8B4513", "B"
+        else:
+            color, label = "#3B7DD8", "F"
+        ax.add_patch(mpatches.Rectangle((i, 0), 1, 1, facecolor=color,
+                                         edgecolor="black", linewidth=0.8))
+        if label:
+            ax.text(i + 0.5, 0.5, label, ha="center", va="center",
+                     color="white", fontsize=9, fontweight="bold")
+ 
+    ax.set_xlim(0, n)
+    ax.set_ylim(0, 1)
+    ax.set_aspect("equal")
+    ax.axis("off")
+    b, f = river.counts()
+    ax.set_title(f"River state after step {step} (n = {n} cells, "
+                 f"bears={b}, fish={f})", fontsize=11)
+ 
+    bear_patch = mpatches.Patch(color="#8B4513", label="Bear")
+    fish_patch = mpatches.Patch(color="#3B7DD8", label="Fish")
+    empty_patch = mpatches.Patch(facecolor="#f0f0f0", edgecolor="black", label="Empty (None)")
+    ax.legend(handles=[bear_patch, fish_patch, empty_patch], loc="upper center",
+              bbox_to_anchor=(0.5, -0.05), ncol=3, frameon=False)
+ 
+    plt.tight_layout()
+    plt.savefig(filename, dpi=150, bbox_inches="tight")
+    plt.close(fig)
+
+# Demo/driver code
+
+def run_simulation(river_size=30, num_bears=6, num_fish=10, steps=15,
+                    snapshot_step=None, snapshot_file="river_snapshot.png"):
     river = River(river_size, num_bears, num_fish)
 
     print("Initial state:")
@@ -143,5 +200,9 @@ def run_simulation(river_size=30, num_bears=6, num_fish=10, steps=15):
         print(f"Step {step: 2d}: bears={b}, fish={f}")
         print(river)
         print()
+        if snapshot_step is not None and step == snapshot_step:
+            save_river_image(river, step, snapshot_file)
+            print(f" (saved a snapshot image of this step to a {snapshot_file}\n)")
 if __name__ == "__main__":
-    run_simulation()
+    random.seed(42)     # fixed seed so this run is reproducible run to run
+    run_simulation(snapshot_step=4)
